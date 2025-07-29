@@ -3,6 +3,11 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 
+string currentDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "FileAnalyzerWorkSpace");
+Directory.CreateDirectory(currentDir);
+var systemMessage = File.ReadAllText("C:\\Users\\DSU Student\\source\\repos\\FirstChatBot\\FirstChatBot\\system.md");
+systemMessage = systemMessage.Replace("++dir++",currentDir);
+
 var builder = Kernel.CreateBuilder()
     .AddOpenAIChatCompletion(
     modelId: "model",
@@ -19,7 +24,7 @@ OpenAIPromptExecutionSettings openAIPromptExecutionSettings = new()
     FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
 };
 var conversation = new ChatHistory();
-conversation.AddSystemMessage(File.ReadAllText("C:\\Users\\DSU Student\\source\\repos\\FirstChatBot\\FirstChatBot\\system.md"));
+conversation.AddSystemMessage(systemMessage);
 
 
 while (true)
