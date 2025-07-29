@@ -145,8 +145,37 @@ public class FileAnalyzerPlugin
             {
                 return "You are not authorized to complete this action";
             }
+            catch (Exception ex)
+            {
+                return $"Error: {ex.Message}";
+            }
         }
         catch (Exception ex)
+        {
+            return $"Error: {ex.Message}";
+        }
+    }
+
+    [KernelFunction("update_files")]
+    [Description("Updates the contents inside of the file, can also rename files or directories")]
+    public async Task<string> UpdateFiles(
+        [Description("The file path to update its content or rename")] string inputPath,
+        [Description("The new name to change the file or directory to")] string newName
+    )
+    {
+        try
+        {
+            string fullPath = ResolveAndValidatePath(inputPath);
+            string? directory = Path.GetDirectoryName(fullPath);
+            if (string.IsNullOrEmpty(directory))
+            {
+                return $"There is no directory which has {inputPath}";
+            }
+            string newPath = Path.Combine(directory, newName);
+            File.Move(fullPath, newPath);
+            return $"Successfully renamed the file";
+        }
+        catch(Exception ex) 
         {
             return $"Error: {ex.Message}";
         }
