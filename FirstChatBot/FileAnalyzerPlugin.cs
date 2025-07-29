@@ -88,13 +88,14 @@ public class FileAnalyzerPlugin
     {
         try
         {
-            string? fullPath = ResolveAndValidatePath( filePath );
-            if (!string.IsNullOrEmpty(fullPath))
+            string fullPath = ResolveAndValidatePath(filePath);
+            string? directory = Path.GetDirectoryName(fullPath);
+            if (!string.IsNullOrEmpty(directory))
             {
-                Directory.CreateDirectory(fullPath);
+                Directory.CreateDirectory(directory);
             }
 
-            await using var writer = new StreamWriter(filePath, false, Encoding.UTF8);
+            await using var writer = new StreamWriter(fullPath, false, Encoding.UTF8);
             await writer.WriteAsync(text);
             return "Successfully Created";
         }
