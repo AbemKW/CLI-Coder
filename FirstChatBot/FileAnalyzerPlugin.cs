@@ -1,10 +1,6 @@
-﻿using System;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using Microsoft.SemanticKernel;
 
 namespace FirstChatBot;
@@ -33,7 +29,9 @@ public class FileAnalyzerPlugin
         string fullPath = Path.GetFullPath(inputPath, _workSpace);
         if (!fullPath.StartsWith(_workSpace, StringComparison.OrdinalIgnoreCase))
         {
-            throw new UnauthorizedAccessException($"Access denied: Path '{inputPath}' is outside the workspace '{_workSpace}'.");
+            throw new UnauthorizedAccessException(
+                $"Access denied: Path '{inputPath}' is outside the workspace '{_workSpace}'."
+            );
         }
 
         // Check for invalid path characters
@@ -102,6 +100,55 @@ public class FileAnalyzerPlugin
         catch (Exception ex)
         {
             return "Error: " + ex.Message;
+        }
+    }
+
+    [KernelFunction("delete_file")]
+    [Description("Deletes a file or a directory in a specific path.")]
+    public async Task<string> DeleteFiles(
+        [Description("The file path to be deleted")] string inputPath
+    )
+    {
+        try
+        {
+            string fullPath = ResolveAndValidatePath(inputPath);
+            string? directory = Path.GetDirectoryName(fullPath);
+            if (string.IsNullOrEmpty(directory))
+            {
+                return $"There is no directory which has {inputPath}";
+            }
+            try
+            {
+                if (Directory.Exists(fullPath))
+                {
+                    Directory.Delete(fullPath, true);
+                    return $"Successfully deleted {fullPath}";
+                }
+                else if (File.Exists(fullPath))
+                {
+                    try
+                    {
+                        File.Delete(fullPath);
+                        return $"Successfully deleted {fullPath}";
+                    }
+                    catch (IOException)
+                    {
+                        return "Cannot complete deletion. File is in use";
+                    }
+                }
+                else
+                {
+                    return $"Path does not exist";
+                }
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return "You are not authorized to complete this action";
+            }
+        }
+        catch (Exception ex)
+        {
+            return $"Error: {ex.Message}";
         }
     }
 
