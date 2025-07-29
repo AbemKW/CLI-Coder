@@ -7,18 +7,13 @@ namespace FirstChatBot;
 
 public class FileAnalyzerPlugin
 {
-    private readonly string _workSpace;
+    private string _workSpace =>
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            "FileAnalyzerWorkSpace"
+        );
 
-    public FileAnalyzerPlugin(string? workspaceRoot = null)
-    {
-        _workSpace = string.IsNullOrWhiteSpace(workspaceRoot)
-            ? Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                "FileAnalyzerWorkSpace"
-            )
-            : workspaceRoot;
-        Directory.CreateDirectory(_workSpace);
-    }
+    public FileAnalyzerPlugin() { }
 
     private string ResolveAndValidatePath(string inputPath)
     {
@@ -117,37 +112,19 @@ public class FileAnalyzerPlugin
             {
                 return $"There is no directory which has {inputPath}";
             }
-            try
+            if (Directory.Exists(fullPath))
             {
-                if (Directory.Exists(fullPath))
-                {
-                    Directory.Delete(fullPath, true);
-                    return $"Successfully deleted {fullPath}";
-                }
-                else if (File.Exists(fullPath))
-                {
-                    try
-                    {
-                        File.Delete(fullPath);
-                        return $"Successfully deleted {fullPath}";
-                    }
-                    catch (IOException)
-                    {
-                        return "Cannot complete deletion. File is in use";
-                    }
-                }
-                else
-                {
-                    return $"Path does not exist";
-                }
+                Directory.Delete(fullPath, true);
+                return $"Successfully deleted {fullPath}";
             }
-            catch (UnauthorizedAccessException)
+            else if (File.Exists(fullPath))
             {
-                return "You are not authorized to complete this action";
+                File.Delete(fullPath);
+                return $"Successfully deleted {fullPath}";
             }
-            catch (Exception ex)
+            else
             {
-                return $"Error: {ex.Message}";
+                return $"Path does not exist";
             }
         }
         catch (Exception ex)
@@ -171,11 +148,24 @@ public class FileAnalyzerPlugin
             {
                 return $"There is no directory which has {inputPath}";
             }
-            string newPath = Path.Combine(directory, newName);
-            File.Move(fullPath, newPath);
-            return $"Successfully renamed the file";
+            if (Directory.Exists(fullPath))
+            {
+                string newPath = Path.Combine(directory, newName);
+                Directory.Move(fullPath, newPath);
+                return $"Successfully renamed {fullPath} to {newPath}";
+            }
+            else if (File.Exists(fullPath))
+            {
+                string newPath = Path.Combine(directory, newName);
+                File.Move(fullPath, newPath);
+                return $"Successfully renamed the file";
+            }
+            else
+            {
+                return $"Path does not exist";
+            }
         }
-        catch(Exception ex) 
+        catch (Exception ex)
         {
             return $"Error: {ex.Message}";
         }
@@ -183,20 +173,18 @@ public class FileAnalyzerPlugin
 
     [KernelFunction("list_path_contents")]
     [Description("Lists the files and directories in the specified path.")]
-    public string ListPathContents(
-        [Description("The directory path to list contents from.")] string directory
-    )
+    public string ListPathContents()
     {
-        if (!Directory.Exists(directory))
+        if (!Directory.Exists(_workSpace))
         {
-            return $"Error: The directory '{directory}' does not exist.";
+            return $"Error: The directory '{_workSpace}' does not exist.";
         }
 
-        var dirs = Directory.GetDirectories(directory).Select(Path.GetFileName);
-        var files = Directory.GetFiles(directory).Select(Path.GetFileName);
+        var dirs = Directory.GetDirectories(_workSpace).Select(Path.GetFileName);
+        var files = Directory.GetFiles(_workSpace).Select(Path.GetFileName);
 
         var sb = new StringBuilder();
-        sb.AppendLine($"Contents of '{directory}':");
+        sb.AppendLine($"Contents of '{_workSpace}':");
         sb.AppendLine("Directories:");
         foreach (var dir in dirs)
         {
