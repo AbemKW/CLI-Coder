@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Text;
 using Microsoft.SemanticKernel;
 
-namespace FirstChatBot;
+namespace FileIOAgent;
 
 public class FileAnalyzerPlugin
 {
