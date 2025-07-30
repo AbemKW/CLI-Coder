@@ -1,7 +1,9 @@
 ﻿using FileIOAgent;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.SemanticKernel.Embeddings;
 using Microsoft.SemanticKernel.Memory;
 
 string currentDir = Path.Combine(
@@ -14,36 +16,49 @@ var systemMessage = File.ReadAllText(
 );
 systemMessage = systemMessage.Replace("++dir++", currentDir);
 
-#pragma warning disable SKEXP0010 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+var embeddingService = new OpenAITextEmbeddingGenerationService(
+    modelId: "text-embedding-qwen3-embedding-0.6b",
+    apiKey: "dummyey"
+);
+
+#pragma warning disable SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+var memoryBuilder = new MemoryBuilder();
+#pragma warning restore SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+memoryBuilder.WithTextEmbeddingGeneration(embeddingService);
+#pragma warning disable SKEXP0050 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+memoryBuilder.WithMemoryStore(new VolatileMemoryStore());
+#pragma warning restore SKEXP0050 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+var memoryService = memoryBuilder.Build();
+
 var builder = Kernel
     .CreateBuilder()
     .AddOpenAIChatCompletion(
         modelId: "model",
         apiKey: "dummykey",
         endpoint: new Uri("http://127.0.0.1:1234/v1")
-    )
-    .AddOpenAIEmbeddingGenerator(modelId: "text-embedding-qwen3-embedding-0.6b"); // Use the extension method to add the embedding generator
-#pragma warning restore SKEXP0010 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-
-builder.Plugins.AddFromType<FileAnalyzerPlugin>();
-
-Kernel kernel = builder.Build();
-
-var embeddingservice = kernel.GetRequiredService<OpenAITextEmbeddingGenerationService>();
+    );
 
 #pragma warning disable SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-var memoryBuilder = new MemoryBuilder();
+builder.Services.AddSingleton<ISemanticTextMemory>(memoryService);
 #pragma warning restore SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
-memoryBuilder.WithTextEmbeddingGeneration(embeddingservice);
-#pragma warning disable SKEXP0050 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-
-memoryBuilder.WithMemoryStore(new VolatileMemoryStore());
-#pragma warning restore SKEXP0050 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-var memoryService = memoryBuilder.Build();
+#pragma warning disable SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+builder.Services.AddSingleton<FileIndexerService>(provider =>
+new FileIndexerService(
+    currentDir,
+    provider.GetRequiredService<ISemanticTextMemory>()
+    )
+);
+#pragma warning restore SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+builder.Plugins.AddFromType<FileAnalyzerPlugin>();
+builder.Plugins.AddFromType<FileSearchPlugin>();
+Kernel kernel = builder.Build();
 
 var chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
 
+var fileIndexer = kernel.GetRequiredService<FileIndexerService>();
+await fileIndexer.IndexAllFilesAsync();
 
 OpenAIPromptExecutionSettings openAIPromptExecutionSettings = new()
 {
@@ -67,8 +82,12 @@ while (true)
     {
         try
         {
+            var searchResults = await kernel.InvokeAsync<string>(
+                "FileSearchPlugin",
+                "search_relevant_files", new() { ["query"] = input }
+                );
+            conversation.AddUserMessage($"Context from files:\n{searchResults}\n Question:\n{input}");
 
-            conversation.AddUserMessage(input);
             var results = chatCompletionService.GetStreamingChatMessageContentsAsync(
                 conversation,
                 executionSettings: openAIPromptExecutionSettings,
