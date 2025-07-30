@@ -2,11 +2,19 @@
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.SemanticKernel.Memory;
 
 string currentDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "FileAnalyzerWorkSpace");
 Directory.CreateDirectory(currentDir);
 var systemMessage = File.ReadAllText("C:\\Users\\DSU Student\\source\\repos\\FirstChatBot\\FileIOAgent\\system.md");
 systemMessage = systemMessage.Replace("++dir++",currentDir);
+
+
+//// Suppress the SKEXP0001 diagnostic warning for MemoryBuilder
+//#pragma warning disable SKEXP0001
+//var memoryBuilder = new MemoryBuilder();
+//memoryBuilder.WithOpenAITextEmbeddingGeneration(modelId: "text-embedding-qwen3-embedding-0.6b",
+//    apiKey: "dummykey",,,)
 
 var builder = Kernel.CreateBuilder()
     .AddOpenAIChatCompletion(

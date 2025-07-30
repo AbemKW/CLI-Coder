@@ -38,6 +38,36 @@ public class FileAnalyzerPlugin
         return fullPath;
     }
 
+    private async Task<List<string>> SearchThroughFiles(string searchContent)
+    {
+        List<string> files = new List<string>();
+        string[] availablefiles = Directory.GetFiles(_workSpace);
+        string[] availableDirectories = Directory.GetDirectories(_workSpace);
+        foreach (string file in availablefiles)
+        {
+            string fileContents = await File.ReadAllTextAsync(file, Encoding.UTF8);
+            if (fileContents.Contains(searchContent))
+            {
+                files.Add(file);
+                
+            }
+        }
+        foreach(var directory in availableDirectories)
+        {
+            string[] availableFiles = Directory.GetFiles(directory);
+            foreach (string file in availableFiles)
+            {
+                string fileContents = await File.ReadAllTextAsync(file, Encoding.UTF8);
+                if (fileContents.Contains(searchContent))
+                {
+                    files.Add(file);
+
+                }
+            }
+        }
+        return files;
+    }
+
     [KernelFunction("read_files")]
     [Description("Reads the content of the file at that path.")]
     public async Task<string> ReadFiles(
@@ -170,6 +200,20 @@ public class FileAnalyzerPlugin
             return $"Error: {ex.Message}";
         }
     }
+
+    //[KernelFunction("search_text")]
+    //[Description("Searches all files and directories for the text and returns the files where the text is found")]
+    //public async Task<string> SearchForFile(
+    //    [Description("The content to search for in files")] string content
+    //)
+    //{
+    //    var files = await SearchThroughFiles(content);
+    //    if (files == null)
+    //    {
+    //        return $"There were no files available with the required information";
+    //    }
+    //    return $"The information was found in these files: {files}";
+    //}
 
     [KernelFunction("list_path_contents")]
     [Description("Lists the files and directories in the specified path.")]
