@@ -1,10 +1,9 @@
 ﻿using FileIOAgent;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
-using Microsoft.SemanticKernel.Embeddings;
-using Microsoft.SemanticKernel.Memory;
 
 string currentDir = Path.Combine(
     Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
@@ -16,20 +15,11 @@ var systemMessage = File.ReadAllText(
 );
 systemMessage = systemMessage.Replace("++dir++", currentDir);
 
-var embeddingService = new OpenAITextEmbeddingGenerationService(
-    modelId: "text-embedding-qwen3-embedding-0.6b",
-    apiKey: "dummyey"
-);
+var httpClient = new HttpClient();
+httpClient.BaseAddress = new Uri("http://127.0.0.1:1234/v1");
 
-#pragma warning disable SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-var memoryBuilder = new MemoryBuilder();
-#pragma warning restore SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-memoryBuilder.WithTextEmbeddingGeneration(embeddingService);
-#pragma warning disable SKEXP0050 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-memoryBuilder.WithMemoryStore(new VolatileMemoryStore());
-#pragma warning restore SKEXP0050 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-
-var memoryService = memoryBuilder.Build();
+// Initialize your RAG class with desired chunk size and overlap
+var rag = new RAG(chunkSize: 100, overlap: 20);
 
 var builder = Kernel
     .CreateBuilder()
@@ -38,21 +28,14 @@ var builder = Kernel
         apiKey: "dummykey",
         endpoint: new Uri("http://127.0.0.1:1234/v1")
     );
-
-#pragma warning disable SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-builder.Services.AddSingleton<ISemanticTextMemory>(memoryService);
-#pragma warning restore SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-
-#pragma warning disable SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-builder.Services.AddSingleton<FileIndexerService>(provider =>
-new FileIndexerService(
+builder.Services.AddSingleton(_ => rag);
+builder.Services.AddSingleton(provider => new FileIndexerService(
     currentDir,
-    provider.GetRequiredService<ISemanticTextMemory>()
-    )
-);
-#pragma warning restore SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    provider.GetRequiredService<RAG>()
+));
 builder.Plugins.AddFromType<FileAnalyzerPlugin>();
 builder.Plugins.AddFromType<FileSearchPlugin>();
+
 Kernel kernel = builder.Build();
 
 var chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
@@ -82,11 +65,7 @@ while (true)
     {
         try
         {
-            var searchResults = await kernel.InvokeAsync<string>(
-                "FileSearchPlugin",
-                "search_relevant_files", new() { ["query"] = input }
-                );
-            conversation.AddUserMessage($"Context from files:\n{searchResults}\n Question:\n{input}");
+            conversation.AddUserMessage(input);
 
             var results = chatCompletionService.GetStreamingChatMessageContentsAsync(
                 conversation,
