@@ -36,50 +36,60 @@ public class RAG(int chunkSize = 100, int overlap = 0)
 
     public void Compile()
     {
+        // If no documents added, clear the search index and stop
         if (Documents.Count == 0)
         {
             Encoded = [];
             return;
         }
 
-        var chunks = new List<(string Text, string Tag)>();
-        int stride = chunkSize - overlap;
+        // List to hold all small text pieces with their source labels
+        var allTextPieces = new List<(string Text, string Tag)>();
 
-        // Create chunks for each document
-        foreach (var (docText, docTag) in Documents)
+        int stepForwardAmount = chunkSize - overlap;
+
+        // Process each document one by one
+        foreach (var (documentText, sourceTag) in Documents)
         {
-            // Split document into tokens
-            var tokens = Encoder.Tokenizer.TokenizeSimple(docText);
+            // Break the document into individual words/tokens
+            var wordTokens = Encoder.Tokenizer.TokenizeSimple(documentText);
 
-            // Create chunks
-            for (int i = 0; i < tokens.Count; i += stride)
+            // Create chunks by sliding through the words
+            for (int startIndex = 0; startIndex < wordTokens.Count; startIndex += stepForwardAmount)
             {
-                // Take chunkSize tokens or remaining tokens if less than chunkSize
-                int currentChunkSize = Math.Min(chunkSize, tokens.Count - i);
-                var chunkWords = tokens.Skip(i).Take(currentChunkSize).ToArray();
-                string chunkText = string.Join(" ", chunkWords);
+                // How many words to take in this chunk
+                int wordsToTake = Math.Min(chunkSize, wordTokens.Count - startIndex);
 
-                // Only add non-empty chunks
+                // Get the actual words for this chunk
+                var wordsInThisChunk = wordTokens.Skip(startIndex).Take(wordsToTake).ToArray();
+
+                // Join them back into a readable sentence/paragraph
+                // ❗ Important: Use space " " not ""!
+                string chunkText = string.Join(" ", wordsInThisChunk);
+
+                // Only keep the chunk if it has real content
                 if (!string.IsNullOrWhiteSpace(chunkText))
                 {
-                    chunks.Add((chunkText, docTag));
+                    // Save the text and where it came from
+                    allTextPieces.Add((Text: chunkText, Tag: sourceTag));
                 }
             }
         }
 
-        // Encode chunks
-        var chunkTexts = chunks.Select(c => c.Text).ToArray();
-        var encodedVectors = Encoder.Encode(chunkTexts);
+        // Now turn all text pieces into numerical meaning-vectors (embeddings)
+        var textsToEncode = allTextPieces.Select(piece => piece.Text).ToArray();
+        var meaningVectors = Encoder.Encode(textsToEncode);
 
-        // Create TaggedEncodedChunk array
-        Encoded = new TaggedEncodedChunk[chunks.Count];
-        for (int i = 0; i < chunks.Count; i++)
+        // Build the final searchable database
+        Encoded = new TaggedEncodedChunk[allTextPieces.Count];
+
+        for (int i = 0; i < allTextPieces.Count; i++)
         {
             Encoded[i] = new TaggedEncodedChunk
             {
-                Text = chunks[i].Text,
-                Vector = encodedVectors[i],
-                Tag = chunks[i].Tag
+                Text = allTextPieces[i].Text,
+                Vector = meaningVectors[i],
+                Tag = allTextPieces[i].Tag
             };
         }
     }

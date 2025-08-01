@@ -217,18 +217,18 @@ public class FileAnalyzerPlugin
 
     [KernelFunction("list_path_contents")]
     [Description("Lists the files and directories in the specified path.")]
-    public string ListPathContents()
+    public string ListPathContents([Description("The file or folder path to list its contents.")] string filePath)
     {
         if (!Directory.Exists(_workSpace))
         {
             return $"Error: The directory '{_workSpace}' does not exist.";
         }
 
-        var dirs = Directory.GetDirectories(_workSpace).Select(Path.GetFileName);
-        var files = Directory.GetFiles(_workSpace).Select(Path.GetFileName);
+        var dirs = Directory.GetDirectories(filePath).Select(Path.GetFileName);
+        var files = Directory.GetFiles(filePath).Select(Path.GetFileName);
 
         var sb = new StringBuilder();
-        sb.AppendLine($"Contents of '{_workSpace}':");
+        sb.AppendLine($"Contents of '{filePath}':");
         sb.AppendLine("Directories:");
         foreach (var dir in dirs)
         {
