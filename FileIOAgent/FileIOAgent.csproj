@@ -10,10 +10,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.KernelMemory.Core" Version="0.98.250508.3" />
+    <PackageReference Include="Microsoft.KernelMemory.SemanticKernelPlugin" Version="0.98.250508.3" />
     <PackageReference Include="Microsoft.SemanticKernel" Version="1.61.0" />
     <PackageReference Include="Microsoft.SemanticKernel.Connectors.OpenAI" Version="1.61.0" />
     <PackageReference Include="Microsoft.SemanticKernel.Plugins.Memory" Version="1.61.0-alpha" />
     <PackageReference Include="OpenAI" Version="2.2.0" />
+    <PackageReference Include="ReadSharp" Version="6.3.0" />
+    <PackageReference Include="SentenceTransformers.MiniLM" Version="25.7.59781" />
   </ItemGroup>
 
 </Project>
