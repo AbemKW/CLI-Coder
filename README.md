@@ -1,10 +1,10 @@
 # FileIOAgent
 
-A powerful .NET 9 AI-powered file system assistant and retrieval-augmented generation (RAG) chatbot for advanced local file management, semantic search, and natural language interaction.
+This is my first project in learning about RAG and Semantic Kernel. It is an AI-powered file system assistant and retrieval-augmented generation (RAG) chatbot for advanced local file management, semantic search, and natural language interaction. 
 
 ## Overview
 
-**FileIOAgent** is a C# application that transforms your local file system into an intelligent, searchable, and interactive workspace. It combines modern AI models, semantic search, and a plugin-based architecture to let you manage, analyze, and retrieve information from your files using natural language. The system is designed for extensibility, privacy, and ease of use.
+**FileIOAgent** is a C# application that transforms local file system into an intelligent, searchable, and interactive workspace. It combines modern AI models, semantic search, and a plugin-based architecture to let you manage, analyze, and retrieve information from your files using natural language. The system is designed for extensibility, privacy, and ease of use.
 
 ## Key Features
 
@@ -19,7 +19,7 @@ A powerful .NET 9 AI-powered file system assistant and retrieval-augmented gener
 
 ## How It Works
 
-- The application creates a dedicated workspace directory in your user profile (`FileAnalyzerWorkSpace`).
+- The application creates a dedicated workspace directory in your user profile (`FileAnalyzerWorkSpace`)*(For security reasons)*
 - All file operations, indexing, and search are restricted to this workspace for safety.
 - The RAG engine (see `RAG.cs`) chunks and encodes documents and web content using MiniLM embeddings, enabling fast and accurate semantic search.
 - Plugins like `FileAnalyzerPlugin` and `FileSearchPlugin` provide file management, search, and analysis capabilities, all accessible via natural language.
@@ -70,5 +70,5 @@ A powerful .NET 9 AI-powered file system assistant and retrieval-augmented gener
 
 ---
 
-*Empower your local files with AI: search, manage, and analyze—all through natural language.*
+*Empower your local files with AI: search, manage, and analyzeâ€”all through natural language.*
 
